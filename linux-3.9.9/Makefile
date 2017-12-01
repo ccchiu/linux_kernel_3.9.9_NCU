@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 9
 SUBLEVEL = 9
-EXTRAVERSION = jerry_ncu_csie
+EXTRAVERSION = -ncu
 NAME = Black Squirrel Wakeup Call
 
 # *DOCUMENTATION*
