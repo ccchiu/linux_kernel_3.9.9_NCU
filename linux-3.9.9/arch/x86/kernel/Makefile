@@ -38,6 +38,7 @@ obj-y				+= process.o
 obj-y				+= i387.o xsave.o
 obj-y				+= ptrace.o
 obj-y				+= helloworld.o
+obj-y				+= csie_ncu_survey.o
 obj-$(CONFIG_X86_32)		+= tls.o
 obj-$(CONFIG_IA32_EMULATION)	+= tls.o
 obj-y				+= step.o
