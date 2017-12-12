@@ -63,9 +63,11 @@ static int get_reg_info()
 
 
 
-#define NCU_START_PAGE_ADDR (992)
+#define NCU_START_PAGE_ADDR (0)
 #define NCU_END_PAGE_ADDR   (1023)
-#define NCU_RANGE  (NCU_END_PAGE_ADDR-NCU_START_PAGE_ADDR)
+#define NCU_RANGE  (NCU_END_PAGE_ADDR-NCU_START_PAGE_ADDR)+1
+/* Page Size FLAG in page entry */
+#define PAGE_SIZE_FLAG (7)
 asmlinkage int sys_csie_ncu_survey_TT(void){
 	printk(KERN_INFO "By jerry@NCU %s %s %s\n",__func__ , __DATE__,__TIME__);
 
@@ -74,15 +76,19 @@ asmlinkage int sys_csie_ncu_survey_TT(void){
 	pgd_t *start =get_current()->mm->pgd;
 #if 1 
 	int i=0;
-	int pgd_entry[NCU_RANGE];
+	pgdval_t pgd_entry[NCU_RANGE];
 	for(i=0;i< NCU_RANGE ;i++)
 		pgd_entry[i]=0;
 
-	//	printk(KERN_EMERG "PTRS_PER_PGD:%d\n",PTRS_PER_PGD);
 	for(i =  NCU_START_PAGE_ADDR;i <= NCU_END_PAGE_ADDR;i++){
-		pgdval_t e = pgd_val(*(start+i));
-		pgd_entry[i]=(int)(((unsigned long)e)&0x00000001);
-		printk(KERN_INFO "PAGE Entry[%d]=%lu  page_entry_value=%d\n",i,(unsigned long)e,pgd_entry[i]);
+		//pgdval_t e = pgd_val(*(start+i));
+		pgd_entry[i]=pgd_val(*(start+i));
+		printk(KERN_INFO "PAGE Entry[%d]=%lu(%lx) PS=%d \n",i,
+			        (unsigned long)pgd_entry[i],
+				(unsigned long)pgd_entry[i],
+				(pgd_entry[i]>>PAGE_SIZE_FLAG) & 0x00000001);
+		//pgd_entry[i]=(int)(((unsigned long)e)&0x00000001);
+		//printk(KERN_INFO "PAGE Entry[%d]=%lu  page_entry_value=%d\n",i,(unsigned long)e,pgd_entry[i]);
 	}
 	//	copy_to_user(result,testarr,1024*sizeof(int));
 #endif
