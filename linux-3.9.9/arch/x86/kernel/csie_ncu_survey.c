@@ -26,6 +26,40 @@
 #include <linux/memcontrol.h>
 #include <linux/cleancache.h>
 
+#include <linux/module.h>    
+#include <linux/proc_fs.h>    
+#include <linux/sched.h>
+#include <asm/uaccess.h>
+#include <asm/desc.h>
+#include <asm/pgtable.h>
+#include <asm/desc.h>
+
+
+
+
+static int get_reg_info()
+{
+
+	unsigned long pgd_paddr,cr4;
+        pgd_paddr = read_cr3();
+	cr4=read_cr4();
+	#if 0
+	len += sprintf( buf+len, "cr4=%08X  ", cr4 );
+	len += sprintf( buf+len, "PSE=%X  ", (cr4>>4)&1 );
+	len += sprintf( buf+len, "PAE=%X  ", (cr4>>5)&1 );
+	len += sprintf( buf+len, "\n" );
+	len += sprintf( buf+len, "cr3=%08X cr0=%08X\n",cr3,cr0);
+	len += sprintf( buf+len, "pgd:0x%08X\n",(unsigned int)mm->pgd);
+	len += sprintf( buf+len, "gdtr address:%lX, limit:%X\n", gdtr.address,gdtr.limit);
+	#endif 
+	printk(KERN_INFO "cr3=%08X \n",pgd_paddr);
+	printk(KERN_INFO "cr4=%08X  ", cr4 );
+	printk(KERN_INFO "PAE=%X  ", (cr4>>5)&1);
+	printk(KERN_INFO "PSE=%X  ", (cr4>>4)&1);
+	
+	
+	return	1;
+}
 
 
 
@@ -35,9 +69,7 @@
 asmlinkage int sys_csie_ncu_survey_TT(void){
 	printk(KERN_INFO "By jerry@NCU %s %s %s\n",__func__ , __DATE__,__TIME__);
 
-
-	unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L;
-
+	get_reg_info();
 
 	pgd_t *start =get_current()->mm->pgd;
 #if 1 
@@ -56,4 +88,5 @@ asmlinkage int sys_csie_ncu_survey_TT(void){
 #endif
 	return 1;
 }
+
 
