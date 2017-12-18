@@ -25,9 +25,8 @@
 #include <linux/hardirq.h> /* for BUG_ON(!in_atomic()) only */
 #include <linux/memcontrol.h>
 #include <linux/cleancache.h>
-
-#include <linux/module.h>    
-#include <linux/proc_fs.h>    
+#include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/sched.h>
 #include <asm/uaccess.h>
 #include <asm/desc.h>
@@ -35,64 +34,111 @@
 #include <asm/desc.h>
 
 
-
-
 static int get_reg_info()
 {
 
-	unsigned long pgd_paddr,cr4;
-        pgd_paddr = read_cr3();
-	cr4=read_cr4();
-	#if 0
-	len += sprintf( buf+len, "cr4=%08X  ", cr4 );
-	len += sprintf( buf+len, "PSE=%X  ", (cr4>>4)&1 );
-	len += sprintf( buf+len, "PAE=%X  ", (cr4>>5)&1 );
-	len += sprintf( buf+len, "\n" );
-	len += sprintf( buf+len, "cr3=%08X cr0=%08X\n",cr3,cr0);
-	len += sprintf( buf+len, "pgd:0x%08X\n",(unsigned int)mm->pgd);
-	len += sprintf( buf+len, "gdtr address:%lX, limit:%X\n", gdtr.address,gdtr.limit);
-	#endif 
-	printk(KERN_INFO "cr3=%08X \n",pgd_paddr);
-	printk(KERN_INFO "cr4=%08X  ", cr4 );
-	printk(KERN_INFO "PAE=%X  ", (cr4>>5)&1);
-	printk(KERN_INFO "PSE=%X  ", (cr4>>4)&1);
-	
-	
-	return	1;
+        unsigned long cr3,cr4;
+        cr3 = read_cr3();
+        cr4=read_cr4();
+        printk(KERN_INFO "cr3=%08X \n",cr3);
+        printk(KERN_INFO "cr4=%08X  ", cr4 );
+        printk(KERN_INFO "PAE=%X  ", (cr4>>5)&1);
+        printk(KERN_INFO "PSE=%X  ", (cr4>>4)&1);
+        return	1;
 }
 
+static void get_pg_macro(void)
+{
+        printk("PAGE_OFFSET = 0x%lx\n", PAGE_OFFSET);
+        printk("PGDIR_SHIFT = %d\n", PGDIR_SHIFT);
+        printk("PUD_SHIFT = %d\n", PUD_SHIFT);
+        printk("PMD_SHIFT = %d\n", PMD_SHIFT);
+        printk("PAGE_SHIFT = %d\n", PAGE_SHIFT);
+        printk("PTRS_PER_PGD = %d\n", PTRS_PER_PGD);
+        printk("PTRS_PER_PUD = %d\n", PTRS_PER_PUD);
+        printk("PTRS_PER_PMD = %d\n", PTRS_PER_PMD);
+        printk("PTRS_PER_PTE = %d\n", PTRS_PER_PTE);
+        printk("PAGE_MASK = 0x%lx\n", PAGE_MASK);
+}
+
+static void dump_pgd(unsigned short start_entry, unsigned short end_entry)
+{
+
+/*
+ *             Linear_address
+ *  +------+-------+-------+---------------+
+ *  | PGD  |  PMD  |  PTE  |     Offset    |
+ *  +------+-------+-------+---------------+
+ *                         <---PAGE_SHIFT-->
+ *                 <------PMD_SHIFT-------->
+ *          <------PGDIR_SHIFT------------->
+ *
+ */
 
 
-#define NCU_START_PAGE_ADDR (0)
-#define NCU_END_PAGE_ADDR   (1023)
-#define NCU_RANGE  (NCU_END_PAGE_ADDR-NCU_START_PAGE_ADDR)+1
-/* Page Size FLAG in page entry */
-#define PAGE_SIZE_FLAG (7)
-asmlinkage int sys_csie_ncu_survey_TT(void){
-	printk(KERN_INFO "By jerry@NCU %s %s %s\n",__func__ , __DATE__,__TIME__);
+	unsigned long addr;
+        unsigned short i, j;
+        pgd_t *base = get_current()->mm->pgd;
+        pgd_t *pgd;  //pgd
+        pud_t *pud;  //pud
+        pmd_t *pmd;  //pmd
+        pte_t *pte;  //pte
 
-	get_reg_info();
+        /* to find an entry in a page-table-directory */
+        //#define pgd_index(addr)     ((addr) >> PGDIR_SHIFT)  //get entry in PGD
+        //#define pgd_offset(mm, addr)    ((mm)->pgd + pgd_index(addr)) //get address in PGD
 
-	pgd_t *start =get_current()->mm->pgd;
-#if 1 
-	int i=0;
-	pgdval_t pgd_entry[NCU_RANGE];
-	for(i=0;i< NCU_RANGE ;i++)
-		pgd_entry[i]=0;
-
-	for(i =  NCU_START_PAGE_ADDR;i <= NCU_END_PAGE_ADDR;i++){
-		//pgdval_t e = pgd_val(*(start+i));
-		pgd_entry[i]=pgd_val(*(start+i));
-		printk(KERN_INFO "PAGE Entry[%d]=%lu(%lx) PS=%d \n",i,
-			        (unsigned long)pgd_entry[i],
-				(unsigned long)pgd_entry[i],
-				(pgd_entry[i]>>PAGE_SIZE_FLAG) & 0x00000001);
-		//pgd_entry[i]=(int)(((unsigned long)e)&0x00000001);
-		//printk(KERN_INFO "PAGE Entry[%d]=%lu  page_entry_value=%d\n",i,(unsigned long)e,pgd_entry[i]);
-	}
-	//	copy_to_user(result,testarr,1024*sizeof(int));
+        /* 1111 1111 1111 1111 1111  1111 1111 1111 */
+        for (i = start_entry; i < end_entry; i++) {
+                //covert entry to address
+                addr = i << PGDIR_SHIFT;
+#if 0
+                printk(KERN_INFO "add=[%08lX] ", addr);
 #endif
-	return 1;
+                //base address + entry[i]
+                pgd = base + i;
+		//got offset int pud
+                pud = pud_offset(pgd, addr);
+		//got offset int pmd
+                pmd = pmd_offset(pud, addr);
+		//if pmd is invaild.
+                if (!pmd_present(*pmd)) {
+                        printk(KERN_INFO "[%04u] NULL\n", i);
+                        continue;
+                }
+                /* 4M */
+                if (pmd_large(*pmd)) {
+                        printk(KERN_INFO "[%04u] 4M 0x%08lX\n", i, pmd_val(*pmd));
+                        //DUMP 4M Table Entry
+#if 0
+                        for (j = 0; j < 2; j++) {
+                                pte = pte_offset_kernel(pmd, addr | (j << PAGE_SHIFT));
+                                if (!pte_present(*pte))
+                                        continue;
+                                printk(KERN_INFO "\t\t(4M)[%04u] 0x%08lX\n", j, pte_val(*pte));
+                        }
+#endif
+                        continue;
+                }
+
+                printk(KERN_INFO "[%04u] Page Table 0x%08lX\n", i, pmd_val(*pmd));
+                //DUMP PAGE Table Entry
+                //for (j = 0; j < PTRS_PER_PTE; j++) {
+                for (j = 0; j < 2; j++) {
+                        //#define pte_offset_kernel(pmd,addr) (pmd_page_vaddr(*(pmd)) + pte_index(addr))
+                                       pte = pte_offset_kernel(pmd, addr | (j << PAGE_SHIFT));
+                        //pte = pte_offset_kernel(pmd, addr);
+                        if (!pte_present(*pte))
+                                continue;
+                        printk(KERN_INFO "\t\t[%04u] 0x%08lX\n", j, pte_val(*pte));
+                }
+        }
 }
-
-
+asmlinkage int sys_csie_ncu_survey_TT(void)
+{
+        printk(KERN_INFO "By jerry@NCU %s %s %s\n",__func__ , __DATE__,__TIME__);
+        get_reg_info();
+        get_pg_macro();
+        dump_pgd(768,1024);
+        return 1;
+}
