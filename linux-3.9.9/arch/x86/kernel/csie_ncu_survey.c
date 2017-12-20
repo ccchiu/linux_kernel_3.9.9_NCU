@@ -39,7 +39,7 @@ static int get_reg_info()
 
         unsigned long cr3,cr4;
         cr3 = read_cr3();
-        cr4=read_cr4();
+        cr4 = read_cr4();
         printk(KERN_INFO "cr3=%08X \n",cr3);
         printk(KERN_INFO "cr4=%08X  ", cr4 );
         printk(KERN_INFO "PAE=%X  ", (cr4>>5)&1);
@@ -75,7 +75,6 @@ static void dump_pgd(unsigned short start_entry, unsigned short end_entry)
  *
  */
 
-
 	unsigned long addr;
         unsigned short i, j;
         pgd_t *base = get_current()->mm->pgd;
@@ -88,7 +87,7 @@ static void dump_pgd(unsigned short start_entry, unsigned short end_entry)
         //#define pgd_index(addr)     ((addr) >> PGDIR_SHIFT)  //get entry in PGD
         //#define pgd_offset(mm, addr)    ((mm)->pgd + pgd_index(addr)) //get address in PGD
 
-        /* 1111 1111 1111 1111 1111  1111 1111 1111 */
+        /* 1111 1111 1111 1111 1111 1111 1111 1111 */
         for (i = start_entry; i < end_entry; i++) {
                 //covert entry to address
                 addr = i << PGDIR_SHIFT;
@@ -110,11 +109,12 @@ static void dump_pgd(unsigned short start_entry, unsigned short end_entry)
                 if (pmd_large(*pmd)) {
                         printk(KERN_INFO "[%04u] 4M 0x%08lX\n", i, pmd_val(*pmd));
                         //DUMP 4M Table Entry
-#if 0
-                        for (j = 0; j < 2; j++) {
+#if 1 
+                        for (j = 0; j < 1; j++) {
                                 pte = pte_offset_kernel(pmd, addr | (j << PAGE_SHIFT));
                                 if (!pte_present(*pte))
                                         continue;
+                                printk(KERN_INFO "\t\t First Entry:");
                                 printk(KERN_INFO "\t\t(4M)[%04u] 0x%08lX\n", j, pte_val(*pte));
                         }
 #endif
@@ -124,12 +124,13 @@ static void dump_pgd(unsigned short start_entry, unsigned short end_entry)
                 printk(KERN_INFO "[%04u] Page Table 0x%08lX\n", i, pmd_val(*pmd));
                 //DUMP PAGE Table Entry
                 //for (j = 0; j < PTRS_PER_PTE; j++) {
-                for (j = 0; j < 2; j++) {
+                for (j = 0; j < 1; j++) {
                         //#define pte_offset_kernel(pmd,addr) (pmd_page_vaddr(*(pmd)) + pte_index(addr))
-                                       pte = pte_offset_kernel(pmd, addr | (j << PAGE_SHIFT));
+                        pte = pte_offset_kernel(pmd, addr | (j << PAGE_SHIFT));
                         //pte = pte_offset_kernel(pmd, addr);
                         if (!pte_present(*pte))
                                 continue;
+                        printk(KERN_INFO "\t\t First Entry:");
                         printk(KERN_INFO "\t\t[%04u] 0x%08lX\n", j, pte_val(*pte));
                 }
         }
